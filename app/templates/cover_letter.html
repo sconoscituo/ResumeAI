@@ -1,0 +1,339 @@
+{% extends "base.html" %}
+{% block title %}자기소개서 {{ '편집' if mode == 'edit' else '작성' }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">
+      {{ '자기소개서 편집' if mode == 'edit' else '자기소개서 작성' }}
+    </h1>
+    <a href="/" class="text-sm text-gray-500 hover:text-gray-700">← 대시보드</a>
+  </div>
+
+  {% if mode == 'create' %}
+  <!-- 자소서 생성 폼 -->
+  <div class="card">
+    <h2 class="section-title">기본 설정</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">프로필 선택 <span class="text-red-500">*</span></label>
+        <select id="cl-profile" class="form-input">
+          <option value="">프로필을 선택하세요</option>
+          {% for p in profiles %}
+          <option value="{{ p.id }}" {% if request.query_params.get('profile_id') == p.id|string %}selected{% endif %}>
+            {{ p.name }} ({{ p.email }})
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      <div>
+        <label class="form-label">자기소개서 제목 <span class="text-red-500">*</span></label>
+        <input id="cl-title" class="form-input" placeholder="예: 카카오 자기소개서 2026" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">지원 회사</label>
+          <input id="cl-company" class="form-input" placeholder="카카오" />
+        </div>
+        <div>
+          <label class="form-label">지원 직무</label>
+          <input id="cl-position" class="form-input" placeholder="서버 개발자" />
+        </div>
+      </div>
+      <div>
+        <label class="form-label">채용공고 URL</label>
+        <input id="cl-url" class="form-input" type="url" placeholder="https://..." />
+      </div>
+      <div>
+        <label class="form-label">채용공고 직접 입력</label>
+        <textarea id="cl-posting" class="form-input h-28" placeholder="채용공고 전문을 붙여넣으세요..."></textarea>
+      </div>
+    </div>
+  </div>
+
+  <!-- 항목 구성 -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title mb-0">자기소개서 항목 구성</h2>
+      <button onclick="addSection()" class="btn-sm-secondary">+ 항목 추가</button>
+    </div>
+    <div id="sections-builder" class="space-y-3">
+      <!-- 기본 항목들 -->
+    </div>
+    <div class="flex justify-end gap-3 mt-6">
+      <button onclick="createCoverLetter()" id="create-btn" class="btn-primary flex items-center gap-2">
+        <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+        </svg>
+        자기소개서 생성
+      </button>
+    </div>
+  </div>
+
+  <div id="loading-card" class="card text-center py-12 hidden">
+    <div class="inline-block animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-gray-600 font-medium">AI가 자기소개서를 작성하고 있습니다...</p>
+    <p class="text-gray-400 text-sm mt-1">항목별로 순차 생성 중입니다. 1~2분 소요됩니다.</p>
+  </div>
+
+  {% else %}
+  <!-- 편집 모드 -->
+  <div class="flex gap-3 flex-wrap">
+    <button onclick="generateAll()" id="gen-all-btn" class="btn-primary flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 10V3L4 14h7v7l9-11h-7z"/>
+      </svg>
+      전체 AI 재생성
+    </button>
+    <a href="/cover-letters/new" class="btn-secondary">새 자소서</a>
+  </div>
+
+  <!-- 메타 정보 -->
+  <div class="card">
+    <div class="flex items-start justify-between">
+      <div>
+        <h2 class="text-xl font-bold text-gray-900">{{ cover_letter.title }}</h2>
+        <p class="text-gray-500 text-sm mt-1">
+          {% if cover_letter.company_name %}{{ cover_letter.company_name }}{% endif %}
+          {% if cover_letter.position %} · {{ cover_letter.position }}{% endif %}
+        </p>
+      </div>
+      <span class="text-sm text-gray-400">{{ sections|length }}개 항목</span>
+    </div>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="loading-card" class="card text-center py-12 hidden">
+    <div class="inline-block animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-gray-600">AI가 모든 항목을 재생성하는 중입니다...</p>
+  </div>
+
+  <!-- 항목들 -->
+  {% if sections %}
+  <div class="space-y-6" id="sections-container">
+    {% for section in sections %}
+    <div class="card" id="section-{{ section.id }}">
+      <div class="flex items-center justify-between mb-3">
+        <div>
+          <h3 class="font-semibold text-gray-900">{{ section.title }}</h3>
+          {% if section.word_limit %}
+          <p class="text-xs text-gray-400">{{ section.word_limit }}자 내외</p>
+          {% endif %}
+        </div>
+        <button onclick="regenerateSection({{ cover_letter.id }}, {{ section.id }})"
+          class="btn-sm-secondary flex items-center gap-1 text-xs">
+          <svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/>
+          </svg>
+          재생성
+        </button>
+      </div>
+      <div id="content-{{ section.id }}" class="relative">
+        {% if section.content %}
+        <div id="view-{{ section.id }}" class="text-gray-700 leading-relaxed whitespace-pre-wrap text-sm">{{ section.content }}</div>
+        {% else %}
+        <div id="view-{{ section.id }}" class="text-gray-400 text-sm italic">아직 내용이 없습니다. AI 재생성 또는 직접 입력하세요.</div>
+        {% endif %}
+        <textarea id="edit-{{ section.id }}"
+          class="form-input h-48 hidden text-sm"
+          placeholder="내용을 직접 수정하세요...">{{ section.content or '' }}</textarea>
+      </div>
+      <div class="flex justify-between items-center mt-3">
+        <div id="char-count-{{ section.id }}" class="text-xs text-gray-400">
+          {% if section.content %}{{ section.content|length }}자{% endif %}
+        </div>
+        <div class="flex gap-2">
+          <button onclick="toggleEdit({{ section.id }})" id="edit-btn-{{ section.id }}" class="btn-sm-secondary text-xs">직접 수정</button>
+          <button onclick="saveSection({{ cover_letter.id }}, {{ section.id }})" id="save-btn-{{ section.id }}" class="btn-sm-primary text-xs hidden">저장</button>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="card text-center py-8 text-gray-400">항목이 없습니다.</div>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+// === 생성 모드 ===
+const SECTION_TYPES = {{ section_types | tojson }};
+
+// 기본 항목
+const defaultSections = [
+  { type: 'motivation', title: '지원동기', limit: 500 },
+  { type: 'growth', title: '성장과정', limit: 500 },
+  { type: 'aspiration', title: '입사 후 포부', limit: 400 },
+];
+
+let sectionList = [...defaultSections];
+
+function renderSectionsBuilder() {
+  const container = document.getElementById('sections-builder');
+  if (!container) return;
+  container.innerHTML = sectionList.map((s, i) => `
+    <div class="flex items-center gap-3 p-3 bg-gray-50 rounded-lg" data-idx="${i}">
+      <div class="flex-1 grid grid-cols-3 gap-3">
+        <select class="form-input text-sm" onchange="updateSection(${i}, 'type', this.value)">
+          ${Object.entries(SECTION_TYPES).map(([k, v]) => `<option value="${k}" ${s.type===k?'selected':''}>${v}</option>`).join('')}
+        </select>
+        <input class="form-input text-sm" placeholder="항목 제목" value="${s.title}"
+          oninput="updateSection(${i}, 'title', this.value)" />
+        <input class="form-input text-sm" type="number" placeholder="글자수" value="${s.limit || ''}"
+          oninput="updateSection(${i}, 'limit', parseInt(this.value)||null)" />
+      </div>
+      <button onclick="removeSection(${i})" class="text-red-400 hover:text-red-600 text-lg leading-none">&times;</button>
+    </div>
+  `).join('');
+}
+
+function updateSection(idx, key, val) { sectionList[idx][key] = val; }
+function addSection() {
+  sectionList.push({ type: 'custom', title: '직접 입력', limit: 500 });
+  renderSectionsBuilder();
+}
+function removeSection(idx) {
+  sectionList.splice(idx, 1);
+  renderSectionsBuilder();
+}
+
+renderSectionsBuilder();
+
+async function createCoverLetter() {
+  const profileId = document.getElementById('cl-profile')?.value;
+  const title = document.getElementById('cl-title')?.value.trim();
+  if (!profileId) { showToast('프로필을 선택하세요.', 'error'); return; }
+  if (!title) { showToast('자기소개서 제목을 입력하세요.', 'error'); return; }
+  if (sectionList.length === 0) { showToast('항목을 최소 1개 추가하세요.', 'error'); return; }
+
+  const body = {
+    profile_id: parseInt(profileId),
+    title,
+    company_name: document.getElementById('cl-company')?.value.trim() || null,
+    position: document.getElementById('cl-position')?.value.trim() || null,
+    job_url: document.getElementById('cl-url')?.value.trim() || null,
+    job_posting: document.getElementById('cl-posting')?.value.trim() || null,
+    sections: sectionList.map((s, i) => ({
+      section_type: s.type,
+      title: s.title,
+      word_limit: s.limit || null,
+      order: i,
+    })),
+  };
+
+  document.getElementById('create-btn').disabled = true;
+  document.getElementById('loading-card').classList.remove('hidden');
+
+  try {
+    // 1. 자소서 구조 생성
+    const res = await fetch('/api/cover-letters/', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '생성 실패');
+    const cl = await res.json();
+
+    // 2. 모든 항목 AI 생성
+    const genRes = await fetch(`/api/cover-letters/${cl.id}/generate-all`, { method: 'POST' });
+    if (!genRes.ok) throw new Error('AI 생성 실패');
+
+    showToast('자기소개서가 생성되었습니다!', 'success');
+    setTimeout(() => window.location.href = `/cover-letters/${cl.id}`, 800);
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+    document.getElementById('create-btn').disabled = false;
+    document.getElementById('loading-card').classList.add('hidden');
+  }
+}
+
+// === 편집 모드 ===
+const CL_ID = {{ cover_letter.id if cover_letter else 'null' }};
+
+async function generateAll() {
+  if (!confirm('모든 항목을 AI로 재생성하시겠습니까? 기존 내용이 덮어씌워집니다.')) return;
+  document.getElementById('gen-all-btn').disabled = true;
+  document.getElementById('loading-card').classList.remove('hidden');
+  try {
+    const res = await fetch(`/api/cover-letters/${CL_ID}/generate-all`, { method: 'POST' });
+    if (!res.ok) throw new Error('생성 실패');
+    showToast('재생성 완료!', 'success');
+    setTimeout(() => location.reload(), 800);
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+    document.getElementById('gen-all-btn').disabled = false;
+    document.getElementById('loading-card').classList.add('hidden');
+  }
+}
+
+async function regenerateSection(clId, sectionId) {
+  const btn = event.target.closest('button');
+  btn.disabled = true;
+  btn.textContent = '생성중...';
+  try {
+    const res = await fetch('/api/cover-letters/generate-section', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ cover_letter_id: clId, section_id: sectionId }),
+    });
+    if (!res.ok) throw new Error('재생성 실패');
+    const data = await res.json();
+    document.getElementById(`view-${sectionId}`).textContent = data.content;
+    document.getElementById(`view-${sectionId}`).classList.remove('text-gray-400', 'italic');
+    document.getElementById(`edit-${sectionId}`).value = data.content;
+    document.getElementById(`char-count-${sectionId}`).textContent = data.content.length + '자';
+    showToast('항목이 재생성되었습니다!', 'success');
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+  }
+  btn.disabled = false;
+  btn.innerHTML = `<svg class="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15"/></svg> 재생성`;
+}
+
+function toggleEdit(sectionId) {
+  const view = document.getElementById(`view-${sectionId}`);
+  const edit = document.getElementById(`edit-${sectionId}`);
+  const editBtn = document.getElementById(`edit-btn-${sectionId}`);
+  const saveBtn = document.getElementById(`save-btn-${sectionId}`);
+
+  if (edit.classList.contains('hidden')) {
+    view.classList.add('hidden');
+    edit.classList.remove('hidden');
+    editBtn.textContent = '취소';
+    saveBtn.classList.remove('hidden');
+    // 글자 수 카운터
+    edit.addEventListener('input', () => {
+      document.getElementById(`char-count-${sectionId}`).textContent = edit.value.length + '자';
+    });
+  } else {
+    view.classList.remove('hidden');
+    edit.classList.add('hidden');
+    editBtn.textContent = '직접 수정';
+    saveBtn.classList.add('hidden');
+  }
+}
+
+async function saveSection(clId, sectionId) {
+  const content = document.getElementById(`edit-${sectionId}`).value;
+  try {
+    const res = await fetch(`/api/cover-letters/${clId}/sections/${sectionId}/content`, {
+      method: 'PUT',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ content }),
+    });
+    if (!res.ok) throw new Error('저장 실패');
+    document.getElementById(`view-${sectionId}`).textContent = content;
+    toggleEdit(sectionId);
+    showToast('저장되었습니다!', 'success');
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+  }
+}
+</script>
+{% endblock %}

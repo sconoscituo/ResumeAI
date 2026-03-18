@@ -1,0 +1,333 @@
+{% extends "base.html" %}
+{% block title %}ATS 분석{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div class="flex items-center justify-between">
+    <div>
+      <h1 class="text-2xl font-bold text-gray-900">ATS 키워드 분석</h1>
+      <p class="text-gray-500 text-sm mt-1">채용공고와 이력서의 키워드 일치율을 분석합니다.</p>
+    </div>
+    <a href="/" class="text-sm text-gray-500 hover:text-gray-700">← 대시보드</a>
+  </div>
+
+  <!-- 분석 실행 -->
+  <div class="card">
+    <h2 class="section-title">분석 설정</h2>
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">프로필 선택</label>
+          <select id="a-profile" class="form-input">
+            <option value="">프로필 선택</option>
+            {% for p in profiles %}
+            <option value="{{ p.id }}" {% if request.query_params.get('profile_id') == p.id|string %}selected{% endif %}>
+              {{ p.name }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+        <div>
+          <label class="form-label">이력서 선택</label>
+          <select id="a-resume" class="form-input">
+            <option value="">이력서 선택</option>
+            {% for r in resumes %}
+            <option value="{{ r.id }}" {% if request.query_params.get('resume_id') == r.id|string %}selected{% endif %}>
+              {{ r.title }}
+            </option>
+            {% endfor %}
+          </select>
+        </div>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="runATS()" id="ats-btn" class="btn-primary">ATS 분석 실행</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 채용공고 단독 분석 -->
+  <div class="card">
+    <h2 class="section-title">채용공고 단독 분석</h2>
+    <div class="space-y-3">
+      <div>
+        <label class="form-label">채용공고 URL</label>
+        <input id="j-url" class="form-input" type="url" placeholder="https://..." />
+      </div>
+      <div>
+        <label class="form-label">채용공고 텍스트</label>
+        <textarea id="j-text" class="form-input h-28" placeholder="채용공고를 붙여넣으세요..."></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="analyzeJob()" id="job-btn" class="btn-secondary">채용공고 분석</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 -->
+  <div id="loading-card" class="card text-center py-10 hidden">
+    <div class="inline-block animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-gray-600">AI가 분석 중입니다...</p>
+  </div>
+
+  <!-- ATS 결과 -->
+  <div id="ats-result" class="hidden space-y-5">
+
+    <!-- 점수 대시보드 -->
+    <div class="card">
+      <h2 class="section-title">종합 ATS 점수</h2>
+      <div class="flex items-center gap-6">
+        <div class="text-center">
+          <div id="score-circle" class="text-5xl font-bold text-indigo-600">—</div>
+          <div class="text-sm text-gray-500 mt-1">/ 100점</div>
+        </div>
+        <div class="flex-1 space-y-2">
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span>키워드 매칭</span><span id="kw-score">—</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2">
+              <div id="kw-bar" class="h-2 bg-indigo-500 rounded-full" style="width:0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span>기술 매칭</span><span id="skill-score">—</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2">
+              <div id="skill-bar" class="h-2 bg-cyan-500 rounded-full" style="width:0%"></div>
+            </div>
+          </div>
+          <div>
+            <div class="flex justify-between text-sm mb-1">
+              <span>경험 매칭</span><span id="exp-score">—</span>
+            </div>
+            <div class="bg-gray-100 rounded-full h-2">
+              <div id="exp-bar" class="h-2 bg-purple-500 rounded-full" style="width:0%"></div>
+            </div>
+          </div>
+        </div>
+      </div>
+      <p id="ats-summary" class="text-sm text-gray-600 mt-4 p-3 bg-gray-50 rounded-lg"></p>
+    </div>
+
+    <!-- 키워드 매칭 -->
+    <div class="grid grid-cols-2 gap-5">
+      <div class="card">
+        <h3 class="font-semibold text-green-700 mb-3">매칭된 키워드</h3>
+        <div id="matched-kw" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-red-600 mb-3">누락된 키워드</h3>
+        <div id="missing-kw" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+    <!-- 기술 매칭 -->
+    <div class="grid grid-cols-2 gap-5">
+      <div class="card">
+        <h3 class="font-semibold text-green-700 mb-3">보유 기술 (매칭)</h3>
+        <div id="matched-skills" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-red-600 mb-3">부족한 기술</h3>
+        <div id="missing-skills" class="flex flex-wrap gap-2"></div>
+      </div>
+    </div>
+
+    <!-- 강점 / 개선 사항 -->
+    <div class="grid grid-cols-2 gap-5">
+      <div class="card">
+        <h3 class="font-semibold text-gray-800 mb-3">강점</h3>
+        <ul id="strengths" class="space-y-2 text-sm text-gray-700"></ul>
+      </div>
+      <div class="card">
+        <h3 class="font-semibold text-gray-800 mb-3">개선 권고사항</h3>
+        <ul id="improvements" class="space-y-2 text-sm text-gray-700"></ul>
+      </div>
+    </div>
+  </div>
+
+  <!-- 채용공고 분석 결과 -->
+  <div id="job-result" class="hidden card">
+    <h2 class="section-title">채용공고 분석 결과</h2>
+    <div class="space-y-4">
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <p class="text-xs text-gray-400 uppercase mb-1">회사</p>
+          <p id="j-company" class="font-semibold"></p>
+        </div>
+        <div>
+          <p class="text-xs text-gray-400 uppercase mb-1">직무</p>
+          <p id="j-position" class="font-semibold"></p>
+        </div>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase mb-2">핵심 키워드</p>
+        <div id="j-keywords" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase mb-2">필수 기술</p>
+        <div id="j-req-skills" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase mb-2">우대 기술</p>
+        <div id="j-pref-skills" class="flex flex-wrap gap-2"></div>
+      </div>
+      <div>
+        <p class="text-xs text-gray-400 uppercase mb-2">요약</p>
+        <p id="j-summary" class="text-sm text-gray-700 bg-gray-50 p-3 rounded-lg"></p>
+      </div>
+    </div>
+  </div>
+
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+function showLoading(show) {
+  document.getElementById('loading-card').classList.toggle('hidden', !show);
+}
+
+async function runATS() {
+  const profileId = document.getElementById('a-profile').value;
+  const resumeId = document.getElementById('a-resume').value;
+  if (!profileId || !resumeId) { showToast('프로필과 이력서를 모두 선택하세요.', 'error'); return; }
+
+  showLoading(true);
+  document.getElementById('ats-btn').disabled = true;
+  document.getElementById('ats-result').classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/analysis/ats-score', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ profile_id: parseInt(profileId), resume_id: parseInt(resumeId) }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '분석 실패');
+    const data = await res.json();
+    renderATSResult(data.details, data.ats_score);
+    showToast('ATS 분석 완료!', 'success');
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+  }
+  showLoading(false);
+  document.getElementById('ats-btn').disabled = false;
+}
+
+function renderATSResult(d, score) {
+  document.getElementById('ats-result').classList.remove('hidden');
+  document.getElementById('score-circle').textContent = score;
+
+  const kwScore = d.keyword_match_score || 0;
+  const skillScore = d.skill_match_score || 0;
+  const expScore = d.experience_match_score || 0;
+
+  document.getElementById('kw-score').textContent = kwScore + '점';
+  document.getElementById('kw-bar').style.width = kwScore + '%';
+  document.getElementById('skill-score').textContent = skillScore + '점';
+  document.getElementById('skill-bar').style.width = skillScore + '%';
+  document.getElementById('exp-score').textContent = expScore + '점';
+  document.getElementById('exp-bar').style.width = expScore + '%';
+  document.getElementById('ats-summary').textContent = d.summary || '';
+
+  function escapeHtml(str) {
+    const map = { '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#039;' };
+    return String(str).replace(/[&<>"']/g, ch => map[ch]);
+  }
+
+  function renderTags(id, items, colorClass) {
+    const container = document.getElementById(id);
+    container.innerHTML = '';
+    if (!items || items.length === 0) {
+      container.innerHTML = '<span class="text-gray-400 text-sm">없음</span>';
+      return;
+    }
+    items.forEach(k => {
+      const span = document.createElement('span');
+      span.className = `px-2 py-1 ${colorClass} rounded text-xs font-medium`;
+      span.textContent = k;
+      container.appendChild(span);
+    });
+  }
+  renderTags('matched-kw', d.matched_keywords, 'bg-green-100 text-green-700');
+  renderTags('missing-kw', d.missing_keywords, 'bg-red-100 text-red-600');
+  renderTags('matched-skills', d.matched_skills, 'bg-cyan-100 text-cyan-700');
+  renderTags('missing-skills', d.missing_skills, 'bg-orange-100 text-orange-600');
+
+  function renderList(id, items, icon, color) {
+    const container = document.getElementById(id);
+    container.innerHTML = '';
+    if (!items || items.length === 0) {
+      container.innerHTML = '<li class="text-gray-400">없음</li>';
+      return;
+    }
+    items.forEach(i => {
+      const li = document.createElement('li');
+      li.className = 'flex items-start gap-2';
+      const iconSpan = document.createElement('span');
+      iconSpan.className = color;
+      iconSpan.textContent = icon;
+      const textNode = document.createTextNode(i);
+      li.appendChild(iconSpan);
+      li.appendChild(textNode);
+      container.appendChild(li);
+    });
+  }
+  renderList('strengths', d.strengths, '✓', 'text-green-500');
+  renderList('improvements', d.improvements, '→', 'text-amber-500');
+}
+
+async function analyzeJob() {
+  const url = document.getElementById('j-url').value.trim();
+  const text = document.getElementById('j-text').value.trim();
+  if (!url && !text) { showToast('URL 또는 채용공고 텍스트를 입력하세요.', 'error'); return; }
+
+  showLoading(true);
+  document.getElementById('job-btn').disabled = true;
+  document.getElementById('job-result').classList.add('hidden');
+
+  try {
+    const res = await fetch('/api/analysis/job-posting', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ job_url: url || null, job_text: text || null }),
+    });
+    if (!res.ok) throw new Error((await res.json()).detail || '분석 실패');
+    const data = await res.json();
+    renderJobResult(data.analysis);
+    showToast('채용공고 분석 완료!', 'success');
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+  }
+  showLoading(false);
+  document.getElementById('job-btn').disabled = false;
+}
+
+function renderJobResult(a) {
+  document.getElementById('job-result').classList.remove('hidden');
+  document.getElementById('j-company').textContent = a.company_name || '—';
+  document.getElementById('j-position').textContent = a.position || '—';
+  document.getElementById('j-summary').textContent = a.summary || '—';
+
+  function renderJobTags(id, items, cls) {
+    const container = document.getElementById(id);
+    container.innerHTML = '';
+    if (!items || items.length === 0) {
+      container.innerHTML = '<span class="text-gray-400 text-sm">없음</span>';
+      return;
+    }
+    items.forEach(k => {
+      const span = document.createElement('span');
+      span.className = `px-2 py-1 ${cls} rounded text-xs font-medium`;
+      span.textContent = k;
+      container.appendChild(span);
+    });
+  }
+  renderJobTags('j-keywords', a.keywords, 'bg-indigo-100 text-indigo-700');
+  renderJobTags('j-req-skills', a.required_skills, 'bg-blue-100 text-blue-700');
+  renderJobTags('j-pref-skills', a.preferred_skills, 'bg-gray-100 text-gray-600');
+}
+</script>
+{% endblock %}

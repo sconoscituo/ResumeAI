@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-size: 10pt;
+      color: #1a1a2e;
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    /* 페이지 설정 */
+    @page {
+      size: A4;
+      margin: 18mm 16mm 18mm 16mm;
+    }
+
+    /* 헤더 영역 */
+    .header {
+      border-bottom: 3px solid #4F46E5;
+      padding-bottom: 14px;
+      margin-bottom: 18px;
+    }
+
+    .header-name {
+      font-size: 24pt;
+      font-weight: 700;
+      color: #1a1a2e;
+      letter-spacing: -0.5px;
+    }
+
+    .header-position {
+      font-size: 11pt;
+      color: #4F46E5;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .header-contacts {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 12px;
+      margin-top: 8px;
+      font-size: 8.5pt;
+      color: #555;
+    }
+
+    .header-contacts a {
+      color: #4F46E5;
+      text-decoration: none;
+    }
+
+    .contact-item {
+      display: flex;
+      align-items: center;
+      gap: 4px;
+    }
+
+    /* 섹션 */
+    .section {
+      margin-bottom: 16px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #4F46E5;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      border-bottom: 1.5px solid #e0e7ff;
+      padding-bottom: 4px;
+      margin-bottom: 10px;
+    }
+
+    /* 전문가 요약 */
+    .summary-text {
+      font-size: 9.5pt;
+      color: #333;
+      line-height: 1.7;
+      background: #f8f8ff;
+      border-left: 3px solid #4F46E5;
+      padding: 8px 12px;
+      border-radius: 0 4px 4px 0;
+    }
+
+    /* 기술 스택 */
+    .skills-container {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 5px;
+    }
+
+    .skill-tag {
+      background: #EEF2FF;
+      color: #4338CA;
+      border: 1px solid #C7D2FE;
+      padding: 2px 8px;
+      border-radius: 20px;
+      font-size: 8pt;
+      font-weight: 500;
+    }
+
+    /* 경력 항목 */
+    .career-item {
+      margin-bottom: 12px;
+      page-break-inside: avoid;
+    }
+
+    .career-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 3px;
+    }
+
+    .career-company {
+      font-size: 11pt;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .career-period {
+      font-size: 8.5pt;
+      color: #888;
+      white-space: nowrap;
+      padding-top: 2px;
+    }
+
+    .career-position {
+      font-size: 9pt;
+      color: #4F46E5;
+      font-weight: 500;
+      margin-bottom: 5px;
+    }
+
+    .career-highlights {
+      font-size: 9pt;
+      color: #333;
+      white-space: pre-wrap;
+      line-height: 1.65;
+      padding-left: 4px;
+    }
+
+    /* 프로젝트 */
+    .project-item {
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+
+    .project-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .project-name {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #1a1a2e;
+    }
+
+    .project-role {
+      font-size: 8.5pt;
+      color: #666;
+      font-weight: 400;
+    }
+
+    .project-desc {
+      font-size: 8.5pt;
+      color: #444;
+      margin-top: 3px;
+      line-height: 1.6;
+    }
+
+    .project-achieve {
+      font-size: 8.5pt;
+      color: #4F46E5;
+      margin-top: 2px;
+      font-style: italic;
+    }
+
+    .tech-tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .tech-tag {
+      background: #F0FDF4;
+      color: #166534;
+      border: 1px solid #BBF7D0;
+      padding: 1px 6px;
+      border-radius: 3px;
+      font-size: 7.5pt;
+    }
+
+    /* 학력 */
+    .edu-item {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+      margin-bottom: 7px;
+    }
+
+    .edu-school {
+      font-size: 10pt;
+      font-weight: 600;
+    }
+
+    .edu-detail {
+      font-size: 8.5pt;
+      color: #666;
+      margin-top: 1px;
+    }
+
+    .edu-period {
+      font-size: 8.5pt;
+      color: #888;
+      white-space: nowrap;
+    }
+
+    /* 자격증 */
+    .cert-item {
+      display: flex;
+      justify-content: space-between;
+      font-size: 9pt;
+      margin-bottom: 5px;
+      padding-bottom: 5px;
+      border-bottom: 1px dotted #eee;
+    }
+
+    .cert-item:last-child { border-bottom: none; }
+
+    .cert-name { font-weight: 600; }
+    .cert-info { color: #888; font-size: 8.5pt; }
+
+    /* 링크 */
+    .link-item {
+      display: inline-block;
+      color: #4F46E5;
+      font-size: 8pt;
+      text-decoration: none;
+      margin-right: 10px;
+    }
+
+    /* 2단 레이아웃 (선택적) */
+    .two-col {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 20px;
+    }
+
+    /* 페이지 하단 */
+    .footer-note {
+      margin-top: 20px;
+      padding-top: 8px;
+      border-top: 1px solid #eee;
+      font-size: 7.5pt;
+      color: #bbb;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <!-- 헤더: 이름 + 연락처 -->
+  <div class="header">
+    <div class="header-name">{{ resume.profile.name }}</div>
+    {% if resume.job_info and resume.job_info.position %}
+    <div class="header-position">{{ resume.job_info.position }} 지원</div>
+    {% endif %}
+    <div class="header-contacts">
+      {% if resume.profile.email %}
+      <span class="contact-item">✉ {{ resume.profile.email }}</span>
+      {% endif %}
+      {% if resume.profile.phone %}
+      <span class="contact-item">☎ {{ resume.profile.phone }}</span>
+      {% endif %}
+      {% if resume.profile.address %}
+      <span class="contact-item">⌂ {{ resume.profile.address }}</span>
+      {% endif %}
+      {% if resume.profile.github_url %}
+      <span class="contact-item">GitHub: {{ resume.profile.github_url }}</span>
+      {% endif %}
+      {% if resume.profile.linkedin_url %}
+      <span class="contact-item">LinkedIn: {{ resume.profile.linkedin_url }}</span>
+      {% endif %}
+      {% if resume.profile.portfolio_url %}
+      <span class="contact-item">Portfolio: {{ resume.profile.portfolio_url }}</span>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- 전문가 요약 -->
+  {% if resume.summary %}
+  <div class="section">
+    <div class="section-title">전문가 요약</div>
+    <div class="summary-text">{{ resume.summary }}</div>
+  </div>
+  {% endif %}
+
+  <!-- 기술 스택 -->
+  {% if resume.skills %}
+  <div class="section">
+    <div class="section-title">핵심 기술</div>
+    <div class="skills-container">
+      {% for skill in resume.skills %}
+      <span class="skill-tag">{{ skill }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 경력 사항 -->
+  {% if resume.enhanced_careers %}
+  <div class="section">
+    <div class="section-title">경력 사항</div>
+    {% for career in resume.enhanced_careers %}
+    <div class="career-item">
+      <div class="career-header">
+        <div class="career-company">{{ career.company_name }}</div>
+        <div class="career-period">{{ career.start_date }} ~ {{ career.end_date }}</div>
+      </div>
+      <div class="career-position">
+        {{ career.position }}{% if career.department %} · {{ career.department }}{% endif %}
+      </div>
+      {% if career.highlights %}
+      <div class="career-highlights">{{ career.highlights }}</div>
+      {% elif career.description %}
+      <div class="career-highlights">{{ career.description }}</div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 프로젝트 -->
+  {% if resume.projects %}
+  <div class="section">
+    <div class="section-title">프로젝트</div>
+    {% for proj in resume.projects %}
+    <div class="project-item">
+      <div class="project-header">
+        <div>
+          <span class="project-name">{{ proj.project_name }}</span>
+          {% if proj.role %}<span class="project-role"> / {{ proj.role }}</span>{% endif %}
+        </div>
+        <div class="cert-info">{{ proj.start_date }} ~ {{ proj.end_date }}</div>
+      </div>
+      {% if proj.description %}
+      <div class="project-desc">{{ proj.description }}</div>
+      {% endif %}
+      {% if proj.achievements %}
+      <div class="project-achieve">성과: {{ proj.achievements }}</div>
+      {% endif %}
+      {% set tech = proj.tech_stack %}
+      {% if tech and tech != '[]' %}
+      <div class="tech-tags">
+        {% for t in proj.tech_stack | from_json %}
+        <span class="tech-tag">{{ t }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+      {% if proj.github_url %}
+      <div style="margin-top:4px">
+        <a class="link-item" href="{{ proj.github_url }}">GitHub →</a>
+        {% if proj.demo_url %}<a class="link-item" href="{{ proj.demo_url }}">Demo →</a>{% endif %}
+      </div>
+      {% endif %}
+    </div>
+    {% endfor %}
+  </div>
+  {% endif %}
+
+  <!-- 학력 + 자격증 (2단) -->
+  <div class="two-col">
+    {% if resume.educations %}
+    <div class="section">
+      <div class="section-title">학력</div>
+      {% for edu in resume.educations %}
+      <div class="edu-item">
+        <div>
+          <div class="edu-school">{{ edu.school_name }}</div>
+          <div class="edu-detail">
+            {{ edu.degree }}{% if edu.major %} · {{ edu.major }}{% endif %}
+            {% if edu.gpa %} · GPA {{ edu.gpa }}{% endif %}
+          </div>
+        </div>
+        <div class="edu-period">{{ edu.start_date }} ~ {{ edu.end_date }}</div>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+
+    {% if resume.certificates %}
+    <div class="section">
+      <div class="section-title">자격증</div>
+      {% for cert in resume.certificates %}
+      <div class="cert-item">
+        <span class="cert-name">{{ cert.cert_name }}</span>
+        <span class="cert-info">{{ cert.issuer }} · {{ cert.issue_date }}</span>
+      </div>
+      {% endfor %}
+    </div>
+    {% endif %}
+  </div>
+
+  <div class="footer-note">
+    이 이력서는 ResumeAI (Powered by Google Gemini)로 생성되었습니다.
+  </div>
+
+</body>
+</html>

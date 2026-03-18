@@ -1,0 +1,279 @@
+{% extends "base.html" %}
+{% block title %}이력서 {{ '미리보기' if mode == 'view' else '생성' }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-6">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">
+      {{ '이력서 미리보기' if mode == 'view' else '이력서 생성' }}
+    </h1>
+    <a href="/" class="text-sm text-gray-500 hover:text-gray-700">← 대시보드</a>
+  </div>
+
+  {% if mode == 'create' %}
+  <!-- 이력서 생성 폼 -->
+  <div class="card">
+    <h2 class="section-title">채용공고 입력</h2>
+    <div class="space-y-4">
+      <div>
+        <label class="form-label">프로필 선택 <span class="text-red-500">*</span></label>
+        <select id="r-profile" class="form-input">
+          <option value="">프로필을 선택하세요</option>
+          {% for p in profiles %}
+          <option value="{{ p.id }}" {% if request.query_params.get('profile_id') == p.id|string %}selected{% endif %}>
+            {{ p.name }} ({{ p.email }})
+          </option>
+          {% endfor %}
+        </select>
+        {% if not profiles %}
+        <p class="text-sm text-amber-600 mt-1">프로필이 없습니다. <a href="/profiles/new" class="underline">프로필 먼저 만들기</a></p>
+        {% endif %}
+      </div>
+      <div>
+        <label class="form-label">이력서 제목 <span class="text-red-500">*</span></label>
+        <input id="r-title" class="form-input" placeholder="예: 카카오 백엔드 개발자 지원 이력서" />
+      </div>
+      <div class="grid grid-cols-2 gap-4">
+        <div>
+          <label class="form-label">지원 회사</label>
+          <input id="r-company" class="form-input" placeholder="카카오" />
+        </div>
+        <div>
+          <label class="form-label">지원 직무</label>
+          <input id="r-position" class="form-input" placeholder="백엔드 엔지니어" />
+        </div>
+      </div>
+      <div>
+        <label class="form-label">채용공고 URL</label>
+        <input id="r-url" class="form-input" type="url" placeholder="https://careers.kakao.com/..." />
+        <p class="text-xs text-gray-400 mt-1">URL을 입력하면 자동으로 공고를 가져옵니다.</p>
+      </div>
+      <div>
+        <label class="form-label">채용공고 직접 입력</label>
+        <textarea id="r-posting" class="form-input h-36"
+          placeholder="채용공고 전문을 붙여넣으세요. URL과 함께 입력하면 직접 입력 내용이 우선 적용됩니다."></textarea>
+      </div>
+      <div class="flex justify-end">
+        <button onclick="generateResume()" id="gen-btn" class="btn-primary flex items-center gap-2">
+          <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+              d="M13 10V3L4 14h7v7l9-11h-7z"/>
+          </svg>
+          AI로 이력서 생성
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- 로딩 상태 -->
+  <div id="loading-card" class="card text-center py-12 hidden">
+    <div class="inline-block animate-spin w-10 h-10 border-4 border-indigo-600 border-t-transparent rounded-full mb-4"></div>
+    <p class="text-gray-600 font-medium">AI가 이력서를 생성하고 있습니다...</p>
+    <p class="text-gray-400 text-sm mt-1">채용공고를 분석하고 맞춤형 내용을 작성하는 중입니다. 30~60초 소요됩니다.</p>
+  </div>
+
+  {% else %}
+  <!-- 이력서 미리보기 -->
+  <div class="flex gap-3 flex-wrap">
+    <a href="/api/resumes/{{ resume.id }}/pdf" class="btn-primary flex items-center gap-2">
+      <svg class="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"/>
+      </svg>
+      PDF 다운로드
+    </a>
+    <a href="/analysis?resume_id={{ resume.id }}&profile_id={{ resume.profile_id }}" class="btn-secondary">ATS 분석 실행</a>
+    <a href="/resumes/new" class="btn-secondary">새 이력서</a>
+  </div>
+
+  <!-- ATS 점수 배지 -->
+  {% if resume.ats_score is not none %}
+  <div class="bg-white border rounded-xl p-4 flex items-center gap-4">
+    <div class="text-center">
+      <div class="text-3xl font-bold {% if resume.ats_score >= 70 %}text-green-600{% elif resume.ats_score >= 50 %}text-yellow-600{% else %}text-red-600{% endif %}">
+        {{ resume.ats_score }}
+      </div>
+      <div class="text-xs text-gray-500">ATS 점수</div>
+    </div>
+    <div class="flex-1 bg-gray-200 rounded-full h-3">
+      <div class="h-3 rounded-full {% if resume.ats_score >= 70 %}bg-green-500{% elif resume.ats_score >= 50 %}bg-yellow-500{% else %}bg-red-500{% endif %}"
+        style="width: {{ resume.ats_score }}%"></div>
+    </div>
+  </div>
+  {% endif %}
+
+  <!-- 이력서 내용 카드 -->
+  {% if resume_content %}
+  <div class="card space-y-6">
+    <!-- 헤더 -->
+    <div class="border-b pb-4">
+      <h2 class="text-2xl font-bold text-gray-900">{{ resume_content.profile.name }}</h2>
+      <div class="flex flex-wrap gap-4 mt-2 text-sm text-gray-600">
+        {% if resume_content.profile.email %}<span>{{ resume_content.profile.email }}</span>{% endif %}
+        {% if resume_content.profile.phone %}<span>{{ resume_content.profile.phone }}</span>{% endif %}
+        {% if resume_content.profile.github_url %}<a href="{{ resume_content.profile.github_url }}" class="text-indigo-600 hover:underline">GitHub</a>{% endif %}
+        {% if resume_content.profile.portfolio_url %}<a href="{{ resume_content.profile.portfolio_url }}" class="text-indigo-600 hover:underline">포트폴리오</a>{% endif %}
+      </div>
+    </div>
+
+    <!-- 전문가 요약 -->
+    {% if resume_content.summary %}
+    <div>
+      <h3 class="resume-section-title">전문가 요약</h3>
+      <p class="text-gray-700 leading-relaxed">{{ resume_content.summary }}</p>
+    </div>
+    {% endif %}
+
+    <!-- 핵심 기술 -->
+    {% if resume_content.skills %}
+    <div>
+      <h3 class="resume-section-title">기술 스택</h3>
+      <div class="flex flex-wrap gap-2">
+        {% for skill in resume_content.skills %}
+        <span class="px-3 py-1 bg-indigo-50 text-indigo-700 rounded-full text-sm font-medium">{{ skill }}</span>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 경력 -->
+    {% if resume_content.enhanced_careers %}
+    <div>
+      <h3 class="resume-section-title">경력 사항</h3>
+      <div class="space-y-5">
+        {% for career in resume_content.enhanced_careers %}
+        <div>
+          <div class="flex justify-between items-start">
+            <div>
+              <p class="font-semibold text-gray-900">{{ career.company_name }}</p>
+              <p class="text-gray-600 text-sm">{{ career.position }}{% if career.department %} · {{ career.department }}{% endif %}</p>
+            </div>
+            <span class="text-sm text-gray-400 whitespace-nowrap">{{ career.start_date }} ~ {{ career.end_date }}</span>
+          </div>
+          {% if career.highlights %}
+          <div class="mt-2 text-sm text-gray-700 whitespace-pre-line leading-relaxed">{{ career.highlights }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 프로젝트 -->
+    {% if resume_content.projects %}
+    <div>
+      <h3 class="resume-section-title">프로젝트</h3>
+      <div class="space-y-4">
+        {% for proj in resume_content.projects %}
+        <div>
+          <div class="flex justify-between items-start">
+            <p class="font-semibold text-gray-900">{{ proj.project_name }} <span class="font-normal text-gray-500 text-sm">/ {{ proj.role }}</span></p>
+            <span class="text-sm text-gray-400 whitespace-nowrap">{{ proj.start_date }} ~ {{ proj.end_date }}</span>
+          </div>
+          {% if proj.description %}<p class="text-sm text-gray-700 mt-1">{{ proj.description }}</p>{% endif %}
+          {% if proj.achievements %}<p class="text-sm text-gray-600 mt-1 italic">성과: {{ proj.achievements }}</p>{% endif %}
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 학력 -->
+    {% if resume_content.educations %}
+    <div>
+      <h3 class="resume-section-title">학력</h3>
+      <div class="space-y-2">
+        {% for edu in resume_content.educations %}
+        <div class="flex justify-between">
+          <div>
+            <span class="font-semibold">{{ edu.school_name }}</span>
+            <span class="text-gray-500 text-sm ml-2">{{ edu.degree }} {{ edu.major }}</span>
+          </div>
+          <span class="text-sm text-gray-400">{{ edu.start_date }} ~ {{ edu.end_date }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    <!-- 자격증 -->
+    {% if resume_content.certificates %}
+    <div>
+      <h3 class="resume-section-title">자격증</h3>
+      <div class="space-y-1">
+        {% for cert in resume_content.certificates %}
+        <div class="flex justify-between text-sm">
+          <span class="font-medium">{{ cert.cert_name }}</span>
+          <span class="text-gray-400">{{ cert.issuer }} · {{ cert.issue_date }}</span>
+        </div>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+  </div>
+
+  <!-- 채용공고 키워드 -->
+  {% if job_keywords %}
+  <div class="card">
+    <h3 class="section-title">채용공고 핵심 키워드</h3>
+    <div class="flex flex-wrap gap-2">
+      {% for kw in job_keywords %}
+      <span class="px-3 py-1 bg-cyan-50 text-cyan-700 rounded-full text-sm">{{ kw }}</span>
+      {% endfor %}
+    </div>
+  </div>
+  {% endif %}
+
+  {% else %}
+  <div class="card text-center py-8 text-gray-400">
+    이력서 콘텐츠를 불러올 수 없습니다.
+  </div>
+  {% endif %}
+
+  {% endif %}
+</div>
+{% endblock %}
+
+{% block scripts %}
+<script>
+async function generateResume() {
+  const profileId = document.getElementById('r-profile').value;
+  const title = document.getElementById('r-title').value.trim();
+  if (!profileId) { showToast('프로필을 선택하세요.', 'error'); return; }
+  if (!title) { showToast('이력서 제목을 입력하세요.', 'error'); return; }
+
+  const body = {
+    profile_id: parseInt(profileId),
+    title,
+    company_name: document.getElementById('r-company').value.trim(),
+    position: document.getElementById('r-position').value.trim(),
+    job_url: document.getElementById('r-url').value.trim() || null,
+    job_posting: document.getElementById('r-posting').value.trim() || null,
+  };
+
+  document.getElementById('gen-btn').disabled = true;
+  document.getElementById('loading-card').classList.remove('hidden');
+
+  try {
+    const res = await fetch('/api/resumes/generate', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(body),
+    });
+    if (!res.ok) {
+      const err = await res.json();
+      throw new Error(err.detail || '생성 실패');
+    }
+    const data = await res.json();
+    showToast('이력서가 생성되었습니다!', 'success');
+    setTimeout(() => window.location.href = `/resumes/${data.id}`, 800);
+  } catch(e) {
+    showToast('오류: ' + e.message, 'error');
+    document.getElementById('gen-btn').disabled = false;
+    document.getElementById('loading-card').classList.add('hidden');
+  }
+}
+</script>
+{% endblock %}

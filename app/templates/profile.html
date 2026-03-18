@@ -1,0 +1,454 @@
+{% extends "base.html" %}
+{% block title %}프로필 {{ '편집' if mode == 'edit' else '입력' }}{% endblock %}
+
+{% block content %}
+<div class="max-w-4xl mx-auto space-y-8">
+
+  <div class="flex items-center justify-between">
+    <h1 class="text-2xl font-bold text-gray-900">
+      {{ '프로필 편집' if mode == 'edit' else '새 프로필 만들기' }}
+    </h1>
+    <a href="/" class="text-sm text-gray-500 hover:text-gray-700">← 대시보드</a>
+  </div>
+
+  <!-- 기본 정보 -->
+  <div class="card">
+    <h2 class="section-title">기본 정보</h2>
+    <form id="profile-form" class="grid grid-cols-1 sm:grid-cols-2 gap-4">
+      <div class="sm:col-span-2">
+        <label class="form-label">이름 <span class="text-red-500">*</span></label>
+        <input type="text" id="f-name" class="form-input" placeholder="홍길동"
+          value="{{ profile.name if profile else '' }}" required />
+      </div>
+      <div>
+        <label class="form-label">이메일 <span class="text-red-500">*</span></label>
+        <input type="email" id="f-email" class="form-input" placeholder="email@example.com"
+          value="{{ profile.email if profile else '' }}" required />
+      </div>
+      <div>
+        <label class="form-label">전화번호</label>
+        <input type="text" id="f-phone" class="form-input" placeholder="010-0000-0000"
+          value="{{ profile.phone if profile else '' }}" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="form-label">주소</label>
+        <input type="text" id="f-address" class="form-input" placeholder="서울특별시 강남구"
+          value="{{ profile.address if profile else '' }}" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="form-label">한 줄 소개</label>
+        <textarea id="f-summary" class="form-input h-20" placeholder="5년 경력의 백엔드 개발자로 대용량 트래픽 시스템 구축 경험이 있습니다.">{{ profile.summary if profile else '' }}</textarea>
+      </div>
+      <div>
+        <label class="form-label">GitHub URL</label>
+        <input type="url" id="f-github" class="form-input" placeholder="https://github.com/username"
+          value="{{ profile.github_url if profile else '' }}" />
+      </div>
+      <div>
+        <label class="form-label">LinkedIn URL</label>
+        <input type="url" id="f-linkedin" class="form-input" placeholder="https://linkedin.com/in/username"
+          value="{{ profile.linkedin_url if profile else '' }}" />
+      </div>
+      <div class="sm:col-span-2">
+        <label class="form-label">포트폴리오 URL</label>
+        <input type="url" id="f-portfolio" class="form-input" placeholder="https://portfolio.com"
+          value="{{ profile.portfolio_url if profile else '' }}" />
+      </div>
+
+      <!-- 기술 스택 -->
+      <div class="sm:col-span-2">
+        <label class="form-label">기술 스택</label>
+        <div class="flex gap-2 mb-2">
+          <input type="text" id="skill-input" class="form-input flex-1" placeholder="Python, React, Docker ... 입력 후 Enter" />
+          <button type="button" onclick="addSkill()" class="btn-secondary px-4">추가</button>
+        </div>
+        <div id="skills-container" class="flex flex-wrap gap-2 min-h-[2rem]">
+          {% if skills %}
+            {% for skill in skills %}
+            <span class="skill-tag" data-skill="{{ skill }}">
+              {{ skill }}
+              <button type="button" onclick="removeSkill(this)" class="ml-1 text-indigo-400 hover:text-red-500">&times;</button>
+            </span>
+            {% endfor %}
+          {% endif %}
+        </div>
+      </div>
+
+      <div class="sm:col-span-2 flex justify-end gap-3 pt-2">
+        <button type="button" onclick="saveProfile()" class="btn-primary">
+          {{ '저장' if mode == 'edit' else '프로필 생성' }}
+        </button>
+      </div>
+    </form>
+  </div>
+
+  {% if mode == 'edit' and profile %}
+  <!-- 학력 사항 -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title mb-0">학력 사항</h2>
+      <button onclick="openModal('edu-modal')" class="btn-sm-secondary">+ 추가</button>
+    </div>
+    <div id="edu-list" class="space-y-3">
+      {% for edu in profile.educations %}
+      <div class="list-item" id="edu-{{ edu.id }}">
+        <div>
+          <p class="font-semibold">{{ edu.school_name }} <span class="text-gray-500 text-sm">{{ edu.degree or '' }} {{ edu.major or '' }}</span></p>
+          <p class="text-sm text-gray-500">{{ edu.start_date or '' }} ~ {{ edu.end_date or '' }} {% if edu.gpa %}· GPA {{ edu.gpa }}{% endif %}</p>
+        </div>
+        <button onclick="deleteEdu({{ edu.id }})" class="text-red-400 hover:text-red-600 text-sm">삭제</button>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm">학력 정보를 추가하세요.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 경력 사항 -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title mb-0">경력 사항</h2>
+      <button onclick="openModal('career-modal')" class="btn-sm-secondary">+ 추가</button>
+    </div>
+    <div id="career-list" class="space-y-3">
+      {% for career in profile.careers %}
+      <div class="list-item" id="career-{{ career.id }}">
+        <div>
+          <p class="font-semibold">{{ career.company_name }} <span class="text-gray-500 text-sm">/ {{ career.position or '' }}</span></p>
+          <p class="text-sm text-gray-500">{{ career.start_date or '' }} ~ {{ career.end_date or '' }}</p>
+          {% if career.description %}<p class="text-sm text-gray-600 mt-1">{{ career.description[:80] }}{% if career.description|length > 80 %}...{% endif %}</p>{% endif %}
+        </div>
+        <button onclick="deleteCareer({{ career.id }})" class="text-red-400 hover:text-red-600 text-sm">삭제</button>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm">경력 정보를 추가하세요.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 프로젝트 -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title mb-0">프로젝트</h2>
+      <button onclick="openModal('proj-modal')" class="btn-sm-secondary">+ 추가</button>
+    </div>
+    <div id="proj-list" class="space-y-3">
+      {% for proj in profile.projects %}
+      <div class="list-item" id="proj-{{ proj.id }}">
+        <div>
+          <p class="font-semibold">{{ proj.project_name }} <span class="text-gray-500 text-sm">/ {{ proj.role or '' }}</span></p>
+          <p class="text-sm text-gray-500">{{ proj.start_date or '' }} ~ {{ proj.end_date or '' }}</p>
+          {% if proj.description %}<p class="text-sm text-gray-600 mt-1">{{ proj.description[:80] }}{% if proj.description|length > 80 %}...{% endif %}</p>{% endif %}
+        </div>
+        <button onclick="deleteProj({{ proj.id }})" class="text-red-400 hover:text-red-600 text-sm">삭제</button>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm">프로젝트를 추가하세요.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 자격증 -->
+  <div class="card">
+    <div class="flex items-center justify-between mb-4">
+      <h2 class="section-title mb-0">자격증</h2>
+      <button onclick="openModal('cert-modal')" class="btn-sm-secondary">+ 추가</button>
+    </div>
+    <div id="cert-list" class="space-y-3">
+      {% for cert in profile.certificates %}
+      <div class="list-item" id="cert-{{ cert.id }}">
+        <div>
+          <p class="font-semibold">{{ cert.cert_name }}</p>
+          <p class="text-sm text-gray-500">{{ cert.issuer or '' }} · {{ cert.issue_date or '' }}</p>
+        </div>
+        <button onclick="deleteCert({{ cert.id }})" class="text-red-400 hover:text-red-600 text-sm">삭제</button>
+      </div>
+      {% else %}
+      <p class="text-gray-400 text-sm">자격증을 추가하세요.</p>
+      {% endfor %}
+    </div>
+  </div>
+
+  <!-- 이력서/자소서 생성 버튼 -->
+  <div class="flex gap-4">
+    <a href="/resumes/new?profile_id={{ profile.id }}" class="btn-primary flex-1 text-center">이력서 생성하기</a>
+    <a href="/cover-letters/new?profile_id={{ profile.id }}" class="btn-secondary flex-1 text-center">자소서 작성하기</a>
+  </div>
+  {% endif %}
+
+</div>
+
+<!-- 학력 모달 -->
+<div id="edu-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 class="text-lg font-semibold mb-4">학력 추가</h3>
+    <div class="space-y-3">
+      <input id="edu-school" class="form-input" placeholder="학교명 *" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="edu-major" class="form-input" placeholder="전공" />
+        <select id="edu-degree" class="form-input">
+          <option value="">학위 선택</option>
+          <option>학사</option><option>석사</option><option>박사</option><option>전문학사</option>
+        </select>
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="edu-start" class="form-input" placeholder="입학 (YYYY-MM)" />
+        <input id="edu-end" class="form-input" placeholder="졸업 (YYYY-MM / 재학중)" />
+      </div>
+      <input id="edu-gpa" class="form-input" placeholder="학점 (예: 3.8/4.5)" />
+    </div>
+    <div class="flex justify-end gap-3 mt-4">
+      <button onclick="closeModal('edu-modal')" class="btn-secondary">취소</button>
+      <button onclick="saveEdu()" class="btn-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 경력 모달 -->
+<div id="career-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 class="text-lg font-semibold mb-4">경력 추가</h3>
+    <div class="space-y-3">
+      <input id="career-company" class="form-input" placeholder="회사명 *" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="career-position" class="form-input" placeholder="직위/직책" />
+        <input id="career-dept" class="form-input" placeholder="부서" />
+      </div>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="career-start" class="form-input" placeholder="입사 (YYYY-MM)" />
+        <input id="career-end" class="form-input" placeholder="퇴사 (YYYY-MM / 재직중)" />
+      </div>
+      <textarea id="career-desc" class="form-input h-24" placeholder="담당 업무 설명"></textarea>
+      <textarea id="career-achieve" class="form-input h-20" placeholder="주요 성과 (수치 포함)"></textarea>
+    </div>
+    <div class="flex justify-end gap-3 mt-4">
+      <button onclick="closeModal('career-modal')" class="btn-secondary">취소</button>
+      <button onclick="saveCareer()" class="btn-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 프로젝트 모달 -->
+<div id="proj-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 class="text-lg font-semibold mb-4">프로젝트 추가</h3>
+    <div class="space-y-3">
+      <input id="proj-name" class="form-input" placeholder="프로젝트명 *" />
+      <input id="proj-role" class="form-input" placeholder="역할 (예: 백엔드 개발 리드)" />
+      <div class="grid grid-cols-2 gap-3">
+        <input id="proj-start" class="form-input" placeholder="시작 (YYYY-MM)" />
+        <input id="proj-end" class="form-input" placeholder="종료 (YYYY-MM)" />
+      </div>
+      <input id="proj-tech" class="form-input" placeholder="사용 기술 (쉼표로 구분)" />
+      <textarea id="proj-desc" class="form-input h-20" placeholder="프로젝트 설명"></textarea>
+      <textarea id="proj-achieve" class="form-input h-16" placeholder="성과 (수치 포함)"></textarea>
+      <div class="grid grid-cols-2 gap-3">
+        <input id="proj-github" class="form-input" type="url" placeholder="GitHub URL" />
+        <input id="proj-demo" class="form-input" type="url" placeholder="Demo URL" />
+      </div>
+    </div>
+    <div class="flex justify-end gap-3 mt-4">
+      <button onclick="closeModal('proj-modal')" class="btn-secondary">취소</button>
+      <button onclick="saveProj()" class="btn-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- 자격증 모달 -->
+<div id="cert-modal" class="modal-overlay hidden">
+  <div class="modal-box">
+    <h3 class="text-lg font-semibold mb-4">자격증 추가</h3>
+    <div class="space-y-3">
+      <input id="cert-name" class="form-input" placeholder="자격증명 *" />
+      <input id="cert-issuer" class="form-input" placeholder="발급기관 (예: 한국산업인력공단)" />
+      <input id="cert-date" class="form-input" placeholder="취득일 (YYYY-MM)" />
+      <input id="cert-number" class="form-input" placeholder="자격증 번호 (선택)" />
+    </div>
+    <div class="flex justify-end gap-3 mt-4">
+      <button onclick="closeModal('cert-modal')" class="btn-secondary">취소</button>
+      <button onclick="saveCert()" class="btn-primary">저장</button>
+    </div>
+  </div>
+</div>
+
+{% endblock %}
+
+{% block scripts %}
+<script>
+const PROFILE_ID = {{ profile.id if profile else 'null' }};
+const MODE = '{{ mode }}';
+
+// 저장된 기술 스택
+let skills = {{ skills | tojson if skills else '[]' }};
+
+function addSkill() {
+  const input = document.getElementById('skill-input');
+  const val = input.value.trim();
+  if (!val) return;
+  val.split(',').map(s => s.trim()).filter(Boolean).forEach(s => {
+    if (!skills.includes(s)) {
+      skills.push(s);
+      renderSkillTag(s);
+    }
+  });
+  input.value = '';
+}
+
+function renderSkillTag(skill) {
+  const container = document.getElementById('skills-container');
+  const span = document.createElement('span');
+  span.className = 'skill-tag';
+  span.dataset.skill = skill;
+
+  const skillText = document.createTextNode(skill + ' ');
+  const btn = document.createElement('button');
+  btn.type = 'button';
+  btn.className = 'ml-1 text-indigo-400 hover:text-red-500';
+  btn.textContent = '\u00D7';
+  btn.setAttribute('onclick', 'removeSkill(this)');
+
+  span.appendChild(skillText);
+  span.appendChild(btn);
+  container.appendChild(span);
+}
+
+function removeSkill(btn) {
+  const tag = btn.parentElement;
+  skills = skills.filter(s => s !== tag.dataset.skill);
+  tag.remove();
+}
+
+document.getElementById('skill-input')?.addEventListener('keydown', e => {
+  if (e.key === 'Enter') { e.preventDefault(); addSkill(); }
+});
+
+async function saveProfile() {
+  const body = {
+    name: document.getElementById('f-name').value.trim(),
+    email: document.getElementById('f-email').value.trim(),
+    phone: document.getElementById('f-phone').value.trim(),
+    address: document.getElementById('f-address').value.trim(),
+    summary: document.getElementById('f-summary').value.trim(),
+    github_url: document.getElementById('f-github').value.trim(),
+    linkedin_url: document.getElementById('f-linkedin').value.trim(),
+    portfolio_url: document.getElementById('f-portfolio').value.trim(),
+    skills: JSON.stringify(skills),
+  };
+  if (!body.name || !body.email) { showToast('이름과 이메일은 필수입니다.', 'error'); return; }
+
+  try {
+    const url = PROFILE_ID ? `/api/profiles/${PROFILE_ID}` : '/api/profiles/';
+    const method = PROFILE_ID ? 'PUT' : 'POST';
+    const res = await fetch(url, { method, headers: { 'Content-Type': 'application/json' }, body: JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    const data = await res.json();
+    showToast('프로필이 저장되었습니다!', 'success');
+    if (!PROFILE_ID) setTimeout(() => window.location.href = `/profiles/${data.id}`, 800);
+  } catch(e) { showToast('저장 실패: ' + e.message, 'error'); }
+}
+
+// 학력 저장
+async function saveEdu() {
+  const body = {
+    school_name: document.getElementById('edu-school').value.trim(),
+    major: document.getElementById('edu-major').value.trim(),
+    degree: document.getElementById('edu-degree').value,
+    start_date: document.getElementById('edu-start').value.trim(),
+    end_date: document.getElementById('edu-end').value.trim(),
+    gpa: document.getElementById('edu-gpa').value.trim(),
+  };
+  if (!body.school_name) { showToast('학교명을 입력하세요.', 'error'); return; }
+  try {
+    const res = await fetch(`/api/profiles/${PROFILE_ID}/educations`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    showToast('학력이 추가되었습니다!', 'success');
+    setTimeout(() => location.reload(), 600);
+  } catch(e) { showToast('추가 실패: ' + e.message, 'error'); }
+}
+async function deleteEdu(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await fetch(`/api/profiles/${PROFILE_ID}/educations/${id}`, { method:'DELETE' });
+  document.getElementById(`edu-${id}`)?.remove();
+  showToast('삭제되었습니다.', 'success');
+}
+
+// 경력 저장
+async function saveCareer() {
+  const body = {
+    company_name: document.getElementById('career-company').value.trim(),
+    position: document.getElementById('career-position').value.trim(),
+    department: document.getElementById('career-dept').value.trim(),
+    start_date: document.getElementById('career-start').value.trim(),
+    end_date: document.getElementById('career-end').value.trim(),
+    description: document.getElementById('career-desc').value.trim(),
+    achievements: document.getElementById('career-achieve').value.trim(),
+  };
+  if (!body.company_name) { showToast('회사명을 입력하세요.', 'error'); return; }
+  try {
+    const res = await fetch(`/api/profiles/${PROFILE_ID}/careers`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    showToast('경력이 추가되었습니다!', 'success');
+    setTimeout(() => location.reload(), 600);
+  } catch(e) { showToast('추가 실패: ' + e.message, 'error'); }
+}
+async function deleteCareer(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await fetch(`/api/profiles/${PROFILE_ID}/careers/${id}`, { method:'DELETE' });
+  document.getElementById(`career-${id}`)?.remove();
+  showToast('삭제되었습니다.', 'success');
+}
+
+// 프로젝트 저장
+async function saveProj() {
+  const techRaw = document.getElementById('proj-tech').value.trim();
+  const techList = techRaw ? techRaw.split(',').map(s => s.trim()).filter(Boolean) : [];
+  const body = {
+    project_name: document.getElementById('proj-name').value.trim(),
+    role: document.getElementById('proj-role').value.trim(),
+    start_date: document.getElementById('proj-start').value.trim(),
+    end_date: document.getElementById('proj-end').value.trim(),
+    tech_stack: JSON.stringify(techList),
+    description: document.getElementById('proj-desc').value.trim(),
+    achievements: document.getElementById('proj-achieve').value.trim(),
+    github_url: document.getElementById('proj-github').value.trim(),
+    demo_url: document.getElementById('proj-demo').value.trim(),
+  };
+  if (!body.project_name) { showToast('프로젝트명을 입력하세요.', 'error'); return; }
+  try {
+    const res = await fetch(`/api/profiles/${PROFILE_ID}/projects`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    showToast('프로젝트가 추가되었습니다!', 'success');
+    setTimeout(() => location.reload(), 600);
+  } catch(e) { showToast('추가 실패: ' + e.message, 'error'); }
+}
+async function deleteProj(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await fetch(`/api/profiles/${PROFILE_ID}/projects/${id}`, { method:'DELETE' });
+  document.getElementById(`proj-${id}`)?.remove();
+  showToast('삭제되었습니다.', 'success');
+}
+
+// 자격증 저장
+async function saveCert() {
+  const body = {
+    cert_name: document.getElementById('cert-name').value.trim(),
+    issuer: document.getElementById('cert-issuer').value.trim(),
+    issue_date: document.getElementById('cert-date').value.trim(),
+    cert_number: document.getElementById('cert-number').value.trim(),
+  };
+  if (!body.cert_name) { showToast('자격증명을 입력하세요.', 'error'); return; }
+  try {
+    const res = await fetch(`/api/profiles/${PROFILE_ID}/certificates`, { method:'POST', headers:{'Content-Type':'application/json'}, body:JSON.stringify(body) });
+    if (!res.ok) throw new Error(await res.text());
+    showToast('자격증이 추가되었습니다!', 'success');
+    setTimeout(() => location.reload(), 600);
+  } catch(e) { showToast('추가 실패: ' + e.message, 'error'); }
+}
+async function deleteCert(id) {
+  if (!confirm('삭제하시겠습니까?')) return;
+  await fetch(`/api/profiles/${PROFILE_ID}/certificates/${id}`, { method:'DELETE' });
+  document.getElementById(`cert-${id}`)?.remove();
+  showToast('삭제되었습니다.', 'success');
+}
+</script>
+{% endblock %}

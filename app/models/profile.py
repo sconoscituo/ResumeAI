@@ -32,6 +32,7 @@ class Profile(Base):
     certificates: Mapped[list["Certificate"]] = relationship("Certificate", back_populates="profile", cascade="all, delete-orphan")
     resumes: Mapped[list["Resume"]] = relationship("Resume", back_populates="profile", cascade="all, delete-orphan")
     cover_letters: Mapped[list["CoverLetter"]] = relationship("CoverLetter", back_populates="profile", cascade="all, delete-orphan")
+    job_postings: Mapped[list["JobPosting"]] = relationship("JobPosting", back_populates="profile", cascade="all, delete-orphan")
 
     def get_skills(self) -> list:
         """기술 스택 JSON 파싱"""

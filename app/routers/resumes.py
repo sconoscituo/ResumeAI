@@ -1,6 +1,6 @@
 """이력서 생성/관리 API 라우터"""
 import json
-from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks
+from fastapi import APIRouter, Depends, HTTPException, BackgroundTasks, Query
 from fastapi.responses import StreamingResponse
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -13,7 +13,8 @@ from app.models.profile import Profile, Education, Career, Project, Certificate
 from app.schemas.resume import ResumeCreate, ResumeResponse
 from app.services.job_analyzer import fetch_job_posting, analyze_job_posting
 from app.services.resume_generator import build_resume_content
-from app.services.pdf_generator import generate_resume_pdf_bytes
+from app.services.pdf_generator import generate_resume_pdf_bytes, TEMPLATE_MAP
+from app.services.translator import translate_resume_to_english
 
 router = APIRouter(prefix="/api/resumes", tags=["이력서"])
 
@@ -150,8 +151,41 @@ async def get_resume(resume_id: int, db: AsyncSession = Depends(get_db)):
 
 
 @router.get("/{resume_id}/pdf")
-async def download_resume_pdf(resume_id: int, db: AsyncSession = Depends(get_db)):
-    """이력서 PDF 다운로드"""
+async def download_resume_pdf(
+    resume_id: int,
+    template: str = Query("default", description="PDF 템플릿 (default/modern/minimal/creative)"),
+    db: AsyncSession = Depends(get_db),
+):
+    """이력서 PDF 다운로드 (템플릿 선택 가능)"""
+    result = await db.execute(select(Resume).where(Resume.id == resume_id))
+    resume = result.scalar_one_or_none()
+    if not resume:
+        raise HTTPException(status_code=404, detail="이력서를 찾을 수 없습니다.")
+
+    if not resume.generated_content:
+        raise HTTPException(status_code=400, detail="이력서 콘텐츠가 없습니다. 먼저 이력서를 생성하세요.")
+
+    # 유효하지 않은 템플릿 이름이면 기본값 사용
+    if template not in TEMPLATE_MAP:
+        template = "default"
+
+    profile_data = await _get_profile_data(resume.profile_id, db)
+    resume_content = json.loads(resume.generated_content)
+
+    pdf_bytes = await generate_resume_pdf_bytes(resume_content, profile_data, template_name=template)
+
+    tpl_label = {"default": "기본", "modern": "모던", "minimal": "미니멀", "creative": "크리에이티브"}.get(template, template)
+    filename = f"이력서_{resume.company_name or 'resume'}_{tpl_label}_{resume_id}.pdf"
+    return StreamingResponse(
+        io.BytesIO(pdf_bytes),
+        media_type="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename*=UTF-8''{filename.encode().hex()}"},
+    )
+
+
+@router.get("/{resume_id}/english-pdf")
+async def download_english_pdf(resume_id: int, db: AsyncSession = Depends(get_db)):
+    """영문 이력서 PDF 다운로드 (Gemini 현지화 번역)"""
     result = await db.execute(select(Resume).where(Resume.id == resume_id))
     resume = result.scalar_one_or_none()
     if not resume:
@@ -163,9 +197,13 @@ async def download_resume_pdf(resume_id: int, db: AsyncSession = Depends(get_db)
     profile_data = await _get_profile_data(resume.profile_id, db)
     resume_content = json.loads(resume.generated_content)
 
-    pdf_bytes = await generate_resume_pdf_bytes(resume_content, profile_data)
+    # 영문으로 번역
+    english_content = await translate_resume_to_english(resume_content, profile_data)
 
-    filename = f"이력서_{resume.company_name or 'resume'}_{resume_id}.pdf"
+    # 영문 템플릿으로 PDF 생성
+    pdf_bytes = await generate_resume_pdf_bytes(english_content, profile_data, template_name="english")
+
+    filename = f"Resume_English_{resume.company_name or 'resume'}_{resume_id}.pdf"
     return StreamingResponse(
         io.BytesIO(pdf_bytes),
         media_type="application/pdf",

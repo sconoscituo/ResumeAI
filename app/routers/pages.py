@@ -12,6 +12,7 @@ from app.database import get_db
 from app.models.profile import Profile
 from app.models.resume import Resume
 from app.models.cover_letter import CoverLetter, SECTION_TYPES
+from app.services.pdf_generator import TEMPLATE_LABELS
 
 router = APIRouter(tags=["페이지"])
 
@@ -187,4 +188,36 @@ async def analysis_page(request: Request, db: AsyncSession = Depends(get_db)):
         "request": request,
         "profiles": profiles,
         "resumes": resumes,
+    })
+
+
+@router.get("/interviews", response_class=HTMLResponse)
+async def interviews_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """면접 준비 페이지"""
+    profiles_result = await db.execute(select(Profile).order_by(Profile.created_at.desc()))
+    profiles = profiles_result.scalars().all()
+
+    cl_result = await db.execute(
+        select(CoverLetter)
+        .options(selectinload(CoverLetter.sections))
+        .order_by(CoverLetter.created_at.desc())
+    )
+    cover_letters = cl_result.scalars().all()
+
+    return templates.TemplateResponse("interview.html", {
+        "request": request,
+        "profiles": profiles,
+        "cover_letters": cover_letters,
+    })
+
+
+@router.get("/jobs", response_class=HTMLResponse)
+async def jobs_page(request: Request, db: AsyncSession = Depends(get_db)):
+    """채용공고 검색 페이지"""
+    profiles_result = await db.execute(select(Profile).order_by(Profile.created_at.desc()))
+    profiles = profiles_result.scalars().all()
+
+    return templates.TemplateResponse("jobs.html", {
+        "request": request,
+        "profiles": profiles,
     })

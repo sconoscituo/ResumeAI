@@ -1,0 +1,408 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <style>
+    @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@300;400;500;700&display=swap');
+
+    * { margin: 0; padding: 0; box-sizing: border-box; }
+
+    body {
+      font-family: 'Noto Sans KR', 'Malgun Gothic', sans-serif;
+      font-size: 9.5pt;
+      color: #1e293b;
+      background: #fff;
+      line-height: 1.6;
+    }
+
+    @page {
+      size: A4;
+      margin: 0;
+    }
+
+    /* 사이드바 레이아웃 */
+    .layout {
+      display: grid;
+      grid-template-columns: 200px 1fr;
+      min-height: 297mm;
+    }
+
+    /* 왼쪽 사이드바 */
+    .sidebar {
+      background: #1e1b4b;
+      color: #e0e7ff;
+      padding: 24px 16px;
+    }
+
+    .sidebar-name {
+      font-size: 16pt;
+      font-weight: 700;
+      color: #fff;
+      line-height: 1.3;
+      margin-bottom: 4px;
+    }
+
+    .sidebar-position {
+      font-size: 8.5pt;
+      color: #a5b4fc;
+      margin-bottom: 18px;
+    }
+
+    .sidebar-section {
+      margin-bottom: 18px;
+    }
+
+    .sidebar-section-title {
+      font-size: 7pt;
+      font-weight: 700;
+      text-transform: uppercase;
+      letter-spacing: 2px;
+      color: #818CF8;
+      border-bottom: 1px solid #312e81;
+      padding-bottom: 4px;
+      margin-bottom: 8px;
+    }
+
+    .contact-item {
+      font-size: 8pt;
+      color: #c7d2fe;
+      margin-bottom: 5px;
+      word-break: break-all;
+    }
+
+    .contact-label {
+      font-size: 7pt;
+      color: #818CF8;
+      display: block;
+      margin-bottom: 1px;
+    }
+
+    /* 사이드바 기술 스택 */
+    .sidebar-skill {
+      display: block;
+      font-size: 8pt;
+      color: #e0e7ff;
+      padding: 3px 0;
+      border-bottom: 1px solid #312e81;
+    }
+
+    .sidebar-skill:last-child { border-bottom: none; }
+
+    /* 사이드바 학력 */
+    .sidebar-edu {
+      margin-bottom: 8px;
+    }
+
+    .sidebar-edu-school {
+      font-size: 8.5pt;
+      font-weight: 600;
+      color: #e0e7ff;
+    }
+
+    .sidebar-edu-detail {
+      font-size: 7.5pt;
+      color: #a5b4fc;
+      margin-top: 1px;
+    }
+
+    /* 사이드바 자격증 */
+    .sidebar-cert {
+      font-size: 8pt;
+      color: #c7d2fe;
+      margin-bottom: 5px;
+    }
+
+    .sidebar-cert-info {
+      font-size: 7pt;
+      color: #818CF8;
+    }
+
+    /* 오른쪽 메인 */
+    .main {
+      padding: 24px 20px;
+      background: #fff;
+    }
+
+    .section {
+      margin-bottom: 18px;
+      page-break-inside: avoid;
+    }
+
+    .section-title {
+      font-size: 10pt;
+      font-weight: 700;
+      color: #1e1b4b;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      padding-bottom: 4px;
+      border-bottom: 2px solid #4F46E5;
+      margin-bottom: 10px;
+    }
+
+    /* 요약 */
+    .summary-text {
+      font-size: 9.5pt;
+      color: #374151;
+      line-height: 1.75;
+      background: #F5F3FF;
+      padding: 8px 12px;
+      border-radius: 4px;
+    }
+
+    /* 경력 */
+    .career-item {
+      margin-bottom: 12px;
+      padding-bottom: 12px;
+      border-bottom: 1px solid #f1f5f9;
+    }
+
+    .career-item:last-child { border-bottom: none; }
+
+    .career-header {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .career-company {
+      font-size: 10.5pt;
+      font-weight: 700;
+      color: #1e1b4b;
+    }
+
+    .career-badge {
+      background: #EEF2FF;
+      color: #4338CA;
+      font-size: 7.5pt;
+      padding: 2px 8px;
+      border-radius: 10px;
+      white-space: nowrap;
+    }
+
+    .career-position {
+      font-size: 9pt;
+      color: #4F46E5;
+      font-weight: 500;
+      margin: 2px 0 4px;
+    }
+
+    .career-desc {
+      font-size: 9pt;
+      color: #475569;
+      white-space: pre-wrap;
+      line-height: 1.65;
+    }
+
+    /* 프로젝트 */
+    .project-item {
+      margin-bottom: 10px;
+      page-break-inside: avoid;
+    }
+
+    .project-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: flex-start;
+    }
+
+    .project-name { font-size: 10pt; font-weight: 700; color: #1e1b4b; }
+    .project-role { font-size: 8.5pt; color: #64748B; margin-left: 5px; }
+    .project-period { font-size: 8pt; color: #94A3B8; }
+
+    .project-desc {
+      font-size: 8.5pt;
+      color: #475569;
+      margin-top: 3px;
+    }
+
+    .project-achieve {
+      font-size: 8.5pt;
+      color: #059669;
+      font-weight: 500;
+      margin-top: 2px;
+    }
+
+    .tech-pills {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 4px;
+      margin-top: 4px;
+    }
+
+    .tech-pill {
+      background: #DBEAFE;
+      color: #1E40AF;
+      padding: 1px 7px;
+      border-radius: 10px;
+      font-size: 7.5pt;
+    }
+
+    .footer-note {
+      margin-top: 14px;
+      font-size: 7pt;
+      color: #CBD5E1;
+      text-align: center;
+    }
+  </style>
+</head>
+<body>
+
+  <div class="layout">
+
+    <!-- 왼쪽 사이드바 -->
+    <div class="sidebar">
+      <div class="sidebar-name">{{ resume.profile.name }}</div>
+      {% if resume.job_info and resume.job_info.position %}
+      <div class="sidebar-position">{{ resume.job_info.position }}</div>
+      {% endif %}
+
+      <!-- 연락처 -->
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">연락처</div>
+        {% if resume.profile.email %}
+        <div class="contact-item">
+          <span class="contact-label">이메일</span>
+          {{ resume.profile.email }}
+        </div>
+        {% endif %}
+        {% if resume.profile.phone %}
+        <div class="contact-item">
+          <span class="contact-label">전화번호</span>
+          {{ resume.profile.phone }}
+        </div>
+        {% endif %}
+        {% if resume.profile.address %}
+        <div class="contact-item">
+          <span class="contact-label">주소</span>
+          {{ resume.profile.address }}
+        </div>
+        {% endif %}
+        {% if resume.profile.github_url %}
+        <div class="contact-item">
+          <span class="contact-label">GitHub</span>
+          {{ resume.profile.github_url }}
+        </div>
+        {% endif %}
+        {% if resume.profile.linkedin_url %}
+        <div class="contact-item">
+          <span class="contact-label">LinkedIn</span>
+          {{ resume.profile.linkedin_url }}
+        </div>
+        {% endif %}
+        {% if resume.profile.portfolio_url %}
+        <div class="contact-item">
+          <span class="contact-label">포트폴리오</span>
+          {{ resume.profile.portfolio_url }}
+        </div>
+        {% endif %}
+      </div>
+
+      <!-- 기술 스택 -->
+      {% if resume.skills %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">기술 스택</div>
+        {% for skill in resume.skills %}
+        <span class="sidebar-skill">{{ skill }}</span>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- 학력 -->
+      {% if resume.educations %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">학력</div>
+        {% for edu in resume.educations %}
+        <div class="sidebar-edu">
+          <div class="sidebar-edu-school">{{ edu.school_name }}</div>
+          <div class="sidebar-edu-detail">
+            {{ edu.degree }}{% if edu.major %} · {{ edu.major }}{% endif %}
+          </div>
+          <div class="sidebar-edu-detail">{{ edu.start_date }} ~ {{ edu.end_date }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <!-- 자격증 -->
+      {% if resume.certificates %}
+      <div class="sidebar-section">
+        <div class="sidebar-section-title">자격증</div>
+        {% for cert in resume.certificates %}
+        <div class="sidebar-cert">
+          {{ cert.cert_name }}
+          <div class="sidebar-cert-info">{{ cert.issuer }} · {{ cert.issue_date }}</div>
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+    </div>
+
+    <!-- 오른쪽 메인 -->
+    <div class="main">
+
+      {% if resume.summary %}
+      <div class="section">
+        <div class="section-title">전문가 요약</div>
+        <div class="summary-text">{{ resume.summary }}</div>
+      </div>
+      {% endif %}
+
+      {% if resume.enhanced_careers %}
+      <div class="section">
+        <div class="section-title">경력 사항</div>
+        {% for career in resume.enhanced_careers %}
+        <div class="career-item">
+          <div class="career-header">
+            <div class="career-company">{{ career.company_name }}</div>
+            <span class="career-badge">{{ career.start_date }} ~ {{ career.end_date }}</span>
+          </div>
+          <div class="career-position">
+            {{ career.position }}{% if career.department %} · {{ career.department }}{% endif %}
+          </div>
+          {% if career.highlights %}
+          <div class="career-desc">{{ career.highlights }}</div>
+          {% elif career.description %}
+          <div class="career-desc">{{ career.description }}</div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if resume.projects %}
+      <div class="section">
+        <div class="section-title">프로젝트</div>
+        {% for proj in resume.projects %}
+        <div class="project-item">
+          <div class="project-row">
+            <div>
+              <span class="project-name">{{ proj.project_name }}</span>
+              {% if proj.role %}<span class="project-role">/ {{ proj.role }}</span>{% endif %}
+            </div>
+            <span class="project-period">{{ proj.start_date }} ~ {{ proj.end_date }}</span>
+          </div>
+          {% if proj.description %}
+          <div class="project-desc">{{ proj.description }}</div>
+          {% endif %}
+          {% if proj.achievements %}
+          <div class="project-achieve">성과: {{ proj.achievements }}</div>
+          {% endif %}
+          {% if proj.tech_stack and proj.tech_stack != '[]' %}
+          <div class="tech-pills">
+            {% for t in proj.tech_stack | from_json %}
+            <span class="tech-pill">{{ t }}</span>
+            {% endfor %}
+          </div>
+          {% endif %}
+        </div>
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      <div class="footer-note">ResumeAI (크리에이티브 템플릿) — Powered by Google Gemini</div>
+    </div>
+
+  </div>
+
+</body>
+</html>

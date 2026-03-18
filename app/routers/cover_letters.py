@@ -14,6 +14,7 @@ from app.schemas.resume import (
 )
 from app.services.job_analyzer import fetch_job_posting, analyze_job_posting
 from app.services.cover_letter_generator import generate_section
+from app.services.proofreader import proofread_text
 from app.routers.resumes import _get_profile_data
 
 router = APIRouter(prefix="/api/cover-letters", tags=["자기소개서"])
@@ -163,6 +164,45 @@ async def update_section_content(
     await db.commit()
     await db.refresh(section)
     return {"id": section.id, "content": section.content}
+
+
+@router.post("/{cl_id}/proofread")
+async def proofread_cover_letter(cl_id: int, db: AsyncSession = Depends(get_db)):
+    """자소서 전체 내용 맞춤법/문법/문체 교정"""
+    cl = await _load_cover_letter(cl_id, db)
+
+    # 내용이 있는 섹션만 합쳐서 교정
+    full_text = "\n\n".join(
+        f"[{s.title}]\n{s.content}"
+        for s in cl.sections
+        if s.content and s.content.strip()
+    )
+
+    if not full_text.strip():
+        raise HTTPException(status_code=400, detail="교정할 내용이 없습니다. 먼저 자소서를 생성하세요.")
+
+    result = await proofread_text(full_text)
+    return result
+
+
+@router.post("/{cl_id}/sections/{section_id}/proofread")
+async def proofread_section(cl_id: int, section_id: int, db: AsyncSession = Depends(get_db)):
+    """자소서 특정 섹션 맞춤법/문법/문체 교정"""
+    result_q = await db.execute(
+        select(CoverLetterSection).where(
+            CoverLetterSection.id == section_id,
+            CoverLetterSection.cover_letter_id == cl_id,
+        )
+    )
+    section = result_q.scalar_one_or_none()
+    if not section:
+        raise HTTPException(status_code=404, detail="항목을 찾을 수 없습니다.")
+
+    if not section.content or not section.content.strip():
+        raise HTTPException(status_code=400, detail="교정할 내용이 없습니다.")
+
+    result = await proofread_text(section.content)
+    return result
 
 
 @router.delete("/{cl_id}", status_code=204)

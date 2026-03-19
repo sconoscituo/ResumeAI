@@ -7,3 +7,5 @@ venv/
 .idea/
 .omc/
 generated_pdfs/
+
+.claude/

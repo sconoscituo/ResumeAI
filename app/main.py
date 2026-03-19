@@ -7,7 +7,7 @@ from pathlib import Path
 
 from app.config import settings
 from app.database import init_db
-from app.routers import profiles, resumes, cover_letters, analysis, pages
+from app.routers import profiles, resumes, cover_letters, analysis, pages, ats
 from app.routers import interviews, jobs
 
 
@@ -48,4 +48,5 @@ app.include_router(resumes.router)         # 이력서 API
 app.include_router(cover_letters.router)   # 자소서 API
 app.include_router(analysis.router)        # 분석 API
 app.include_router(interviews.router)      # 면접 준비 API
-app.include_router(jobs.router)            # 채용공고 API
+app.include_router(jobs.router)
+app.include_router(ats.router, prefix="/api/v1")            # 채용공고 API
